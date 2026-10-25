@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Akcijų paieška</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #fff; --text: #16181d; --muted: #6b7280; --line: #e3e5e9;
+    --accent: #16a34a; --sale: #dc2626; --chip: #eef0f3;
+    --maxima: #d62828; --iki: #2a9d3f; --rimi: #1d4ed8; --lidl: #c99400; --aibe: #7c3aed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111317; --surface: #1b1e24; --text: #eceef1; --muted: #9aa1ac; --line: #2c3038;
+      --accent: #22c55e; --sale: #f87171; --chip: #262a31;
+      --maxima: #f05252; --iki: #34c759; --rimi: #5b8def; --lidl: #f2c94c; --aibe: #a78bfa;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface);
+           border-bottom: 1px solid var(--line); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+  .top { display: flex; gap: 12px; align-items: center; padding: 14px 0 10px; }
+  h1 { font-size: 20px; margin: 0; white-space: nowrap; }
+  h1 span { color: var(--accent); }
+  #q { flex: 1; min-width: 0; font: inherit; font-size: 17px; padding: 10px 14px;
+       border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+  #q:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-bottom: 12px; }
+  .chip { border: 1px solid var(--line); background: var(--chip); color: var(--text); font: inherit;
+          font-size: 13px; padding: 5px 11px; border-radius: 999px; cursor: pointer; user-select: none; }
+  .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .chip.off { opacity: .45; }
+  .chip.off .dot { background: var(--muted) !important; }
+  select, label.opt { font: inherit; font-size: 13px; color: var(--text); }
+  select { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+  label.opt { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+  .sep { flex: 1; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 4px;
+             color: var(--muted); font-size: 14px; }
+  .best { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+          padding: 4px 10px; color: var(--text); }
+  .best b { font-variant-numeric: tabular-nums; }
+  .best:first-of-type { border-color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 14px; margin: 14px 0 24px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+          overflow: hidden; display: flex; flex-direction: column; color: inherit; text-decoration: none;
+          position: relative; transition: border-color .15s; }
+  .card:hover { border-color: var(--muted); }
+  .card.top1 { border: 2px solid var(--accent); }
+  .ribbon { position: absolute; top: 8px; left: 8px; background: var(--accent); color: #fff;
+            font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; z-index: 1; }
+  .pct { position: absolute; top: 8px; right: 8px; background: var(--sale); color: #fff;
+         font-weight: 700; font-size: 13px; padding: 2px 7px; border-radius: 6px; z-index: 1; }
+  .img { aspect-ratio: 4/3; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .img img { max-width: 92%; max-height: 92%; object-fit: contain; }
+  .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .store { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .name { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+          overflow: hidden; }
+  .details { font-size: 12px; color: var(--muted); }
+  .prices { display: flex; align-items: baseline; gap: 8px; margin-top: auto; padding-top: 6px; flex-wrap: wrap; }
+  .price { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .old { color: var(--muted); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+  .noprice { font-size: 18px; font-weight: 800; color: var(--sale); }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px;
+         background: var(--chip); color: var(--text); }
+  .tag.deal { background: var(--sale); color: #fff; }
+
+  .more { display: block; margin: 0 auto 32px; font: inherit; padding: 10px 22px; border-radius: 10px;
+          border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+  footer { color: var(--muted); font-size: 13px; padding: 16px 0 28px; border-top: 1px solid var(--line); }
+  footer button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+                  border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+  .err { color: var(--sale); }
+
+  @media (max-width: 600px) {
+    .top { flex-wrap: wrap; }
+    h1 { width: 100%; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .price { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Akcijų <span>paieška</span></h1>
+      <input id="q" type="search" placeholder="Ieškoti prekės, pvz.: sviestas, kava, pienas…" autocomplete="off" autofocus>
+    </div>
+    <div class="filters">
+      <div id="stores" style="display:contents"></div>
+      <span class="sep"></span>
+      <label class="opt"><input type="checkbox" id="noCard"> Be lojalumo kortelės</label>
+      <label class="opt"><input type="checkbox" id="priced"> Tik su kaina</label>
+      <select id="sort">
+        <option value="">Rikiuoti: automatiškai</option>
+        <option value="price">Pigiausios viršuje</option>
+        <option value="discount">Didžiausia nuolaida</option>
+        <option value="name">Pagal pavadinimą</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="summary" id="summary"></div>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>Rodyti daugiau</button>
+</main>
+
+<footer class="wrap" id="footer"></footer>
+
+<script>
+const STORES = { "Maxima": "--maxima", "IKI": "--iki", "Rimi": "--rimi", "Lidl": "--lidl", "Aibė": "--aibe" };
+const CARD_NAME = { "Maxima": "AČIŪ kortele", "IKI": "IKI kortele", "Rimi": "Mano Rimi kortele",
+                    "Lidl": "Lidl Plus", "Aibė": "AIBĖ JUMS kortele" };
+const PAGE = 60;
+const $ = id => document.getElementById(id);
+const active = new Set(Object.keys(STORES));
+let offset = 0, reqId = 0;
+
+const eur = v => v == null ? "" : v.toFixed(2).replace(".", ",") + " €";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function renderStoreChips() {
+  $("stores").innerHTML = Object.entries(STORES).map(([s, v]) =>
+    `<button class="chip ${active.has(s) ? "" : "off"}" data-store="${s}">
+       <span class="dot" style="background:var(${v})"></span>${s}</button>`).join("");
+}
+$("stores").addEventListener("click", e => {
+  const b = e.target.closest("[data-store]"); if (!b) return;
+  const s = b.dataset.store;
+  // first click isolates a store; clicking the only active one shows all again
+  if (active.size === Object.keys(STORES).length) { active.clear(); active.add(s); }
+  else if (active.has(s)) { active.delete(s); if (!active.size) Object.keys(STORES).forEach(x => active.add(x)); }
+  else active.add(s);
+  renderStoreChips(); search();
+});
+
+function card(p, isBest) {
+  const unit = p.price != null ? p.price / p.qty : null;
+  const priceHtml = p.price != null
+    ? `<span class="price">${eur(p.price)}</span>${p.old_price ? `<span class="old">${eur(p.old_price * p.qty)}</span>` : ""}`
+    : `<span class="noprice">${esc(p.deal || "Akcija")}</span>`;
+  const tags = [];
+  if (p.deal && p.price != null) tags.push(`<span class="tag deal">${esc(p.deal)}</span>`);
+  if (p.qty > 1 && unit != null) tags.push(`<span class="tag">${eur(unit)} / vnt.</span>`);
+  if (p.card) tags.push(`<span class="tag" title="Akcijos kaina galioja tik su lojalumo kortele">su ${esc(CARD_NAME[p.store] || "kortele")}</span>`);
+  const meta = [p.unit_price, p.valid && "Galioja: " + p.valid].filter(Boolean).map(esc).join(" · ");
+  return `<a class="card ${isBest ? "top1" : ""}" href="${esc(p.url)}" target="_blank" rel="noopener">
+    ${isBest ? `<span class="ribbon">Pigiausia</span>` : ""}
+    ${p.discount ? `<span class="pct">-${p.discount}%</span>` : ""}
+    <div class="img">${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
+      ${p.image_fallback ? `data-fallback="${esc(p.image_fallback)}"` : ""}>` : ""}</div>
+    <div class="body">
+      <div class="store" style="color:var(${STORES[p.store] || "--muted"})">${esc(p.store)}</div>
+      <div class="name">${esc(p.name)}</div>
+      ${p.details ? `<div class="details">${esc(p.details)}</div>` : ""}
+      <div class="prices">${priceHtml}</div>
+      ${tags.length ? `<div class="meta">${tags.join("")}</div>` : ""}
+      ${meta ? `<div class="meta">${meta}</div>` : ""}
+    </div></a>`;
+}
+
+async function search(append = false) {
+  const id = ++reqId;
+  offset = append ? offset + PAGE : 0;
+  const q = $("q").value.trim();
+  const sort = $("sort").value || (q ? "price" : "discount");
+  const params = new URLSearchParams({ q, sort, offset, limit: PAGE,
+    stores: [...active].join(","), no_card: $("noCard").checked ? 1 : 0, priced: $("priced").checked ? 1 : 0 });
+  const r = await fetch("/api/search?" + params).then(r => r.json());
+  if (id !== reqId) return;  // a newer search already started
+
+  const best = q && sort === "price" && offset === 0;
+  const html = r.items.map((p, i) => card(p, best && i === 0 && p.price != null)).join("");
+  if (append) $("grid").insertAdjacentHTML("beforeend", html); else $("grid").innerHTML = html;
+  $("more").hidden = offset + PAGE >= r.total;
+
+  if (!append) {
+    const cheap = Object.entries(r.cheapest);
+    $("summary").innerHTML = r.total
+      ? `<span>Rasta: <b>${r.total}</b>${q ? "" : " akcijų"}.</span>` +
+        (q && cheap.length ? `<span>Pigiausia kiekvienoje parduotuvėje:</span>` +
+          cheap.map(([s, c]) => `<span class="best" title="${esc(c.name)}"><span style="color:var(${STORES[s]})">●</span> ${esc(s)} <b>${eur(c.unit)}</b></span>`).join("") : "")
+      : "";
+    if (!r.total) $("grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Nieko nerasta${q ? ` pagal „${esc(q)}“` : ""}.</div>`;
+  }
+}
+
+async function status() {
+  const s = await fetch("/api/status").then(r => r.json());
+  const per = Object.entries(s.stores || {}).map(([n, v]) =>
+    v.error ? `<span class="err" title="${esc(v.error)}">${esc(n)}: klaida</span>` : `${esc(n)}: ${v.count}`).join(" · ");
+  const when = s.updated ? new Date(s.updated).toLocaleString("lt-LT") : "dar nesurinkta";
+  $("footer").innerHTML = s.refreshing
+    ? `Renkamos akcijos iš parduotuvių… (Rimi užtrunka ilgiausiai)`
+    : `Atnaujinta: ${when} · Iš viso ${s.total} prekių (${per}) &nbsp; <button id="refresh">Atnaujinti dabar</button>`;
+  if (s.refreshing) setTimeout(async () => { const was = s.refreshing; await status(); if (was) search(); }, 4000);
+}
+$("footer").addEventListener("click", async e => {
+  if (e.target.id !== "refresh") return;
+  await fetch("/api/refresh", { method: "POST" }); status();
+});
+
+// image load errors don't bubble, so listen in the capture phase
+$("grid").addEventListener("error", e => {
+  const img = e.target;
+  if (img.tagName !== "IMG") return;
+  if (img.dataset.fallback) { img.src = img.dataset.fallback; delete img.dataset.fallback; }
+  else img.remove();
+}, true);
+
+let t;
+$("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => search(), 200); });
+["sort", "noCard", "priced"].forEach(id => $(id).addEventListener("change", () => search()));
+$("more").addEventListener("click", () => search(true));
+
+renderStoreChips(); search(); status();
+</script>
+</body>
+</html>
